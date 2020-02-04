@@ -6,33 +6,33 @@
 
 ### 一、分析教务管理系统的WEB界面实现自动登录
 
-我们从登录入口开始分析，先按F12选择Network，点击Preserve log 和 🚫Clear ，在输入框中随便输入一些数字，然后点击登录。<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204193324650.png" alt="image-20200204193324650" style="zoom:50%;" />
+我们从登录入口开始分析，先按F12选择Network，点击Preserve log 和 🚫Clear ，在输入框中随便输入一些数字，然后点击登录。<img src="pictures/image-20200204193324650.png" alt="image-20200204193324650" style="zoom:50%;" />
 
 
 
 点击发送的第一个请求，观察他的Form表单
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204195331940.png" alt="image-20200204195331940" style="zoom:50%;" />
+<img src="pictures/image-20200204195331940.png" alt="image-20200204195331940" style="zoom:50%;" />
 
 我们发现发送的账号密码数据被加密了，所以想要模拟登录，必须得知道他加密的方法。
 
 我们返回页面，查看源代码，观察登录按钮的事件。
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204195212546.png" alt="image-20200204195212546" style="zoom:50%;" />
+<img src="pictures/image-20200204195212546.png" alt="image-20200204195212546" style="zoom:50%;" />
 
 发现在登录时，账号和密码分别被叫encodeInp的函数加密，然后用"%%%"连接起来，和上面中加密的结果一致。
 
 观察网页源代码的头部文件，发现函数被放在了conwork.js中。
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204195729219.png" alt="image-20200204195729219" style="zoom:50%;" />
+<img src="pictures/image-20200204195729219.png" alt="image-20200204195729219" style="zoom:50%;" />
 
 打开之前截取到的请求，找到conwork.js文件，发现被eval加密了，不过可以从百度上随便找个在线网站解密源码。
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204200235250.png" alt="image-20200204200235250" style="zoom:50%;" />
+<img src="pictures/image-20200204200235250.png" alt="image-20200204200235250" style="zoom:50%;" />
 
 解密后的加密算法长这样的：
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204200455606.png" alt="image-20200204200455606" style="zoom:50%;" />
+<img src="pictures/image-20200204200455606.png" alt="image-20200204200455606" style="zoom:50%;" />
 
 好了，到了这里我们先停一下，先用Python模拟一下自动登录，看看是否能登录成功
 
@@ -117,13 +117,13 @@ if __name__ == '__main__':
 
 我们将结果保存成html，用浏览器打开。
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204202308818.png" alt="image-20200204202308818" style="zoom:50%;" />
+<img src="pictures/image-20200204202308818.png" alt="image-20200204202308818" style="zoom:50%;" />
 
 发现登录成功了。到目前为止，其实已经成功了一大半，然后我们开始分析查询成绩发送的数据及URL。
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204203531874.png" alt="image-20200204203531874" style="zoom:50%;" />
+<img src="pictures/image-20200204203531874.png" alt="image-20200204203531874" style="zoom:50%;" />
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204203718453.png" alt="image-20200204203718453" style="zoom:50%;" />
+<img src="pictures/image-20200204203718453.png" alt="image-20200204203718453" style="zoom:50%;" />
 
 发现只发送一个post请求
 分析form表单数据，经过多次试验发现
@@ -267,9 +267,9 @@ if __name__ == '__main__':
 
 效果如下：
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204204937442.png" alt="image-20200204204937442" style="zoom:50%;" />
+<img src="pictures/image-20200204204937442.png" alt="image-20200204204937442" style="zoom:50%;" />
 
-<img src="/home/howie/Desktop/workcode/MyNotes/pictures/image-20200204205146436.png" alt="image-20200204205146436" style="zoom:50%;" />
+<img src="pictures/image-20200204205146436.png" alt="image-20200204205146436" style="zoom:50%;" />
 
 
 
