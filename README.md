@@ -16,23 +16,66 @@
 
 我们发现发送的账号密码数据被加密了，所以想要模拟登录，必须得知道他加密的方法。
 
-我们返回页面，查看源代码，观察登录按钮的事件。
+==经提醒，发现此加密为Base64加密，下方内容可以选看==
 
-<img src="pictures/image-20200204195212546.png" alt="image-20200204195212546" style="zoom:50%;" />
-
-发现在登录时，账号和密码分别被叫encodeInp的函数加密，然后用"%%%"连接起来，和上面中加密的结果一致。
-
-观察网页源代码的头部文件，发现函数被放在了conwork.js中。
-
-<img src="pictures/image-20200204195729219.png" alt="image-20200204195729219" style="zoom:50%;" />
-
-打开之前截取到的请求，找到conwork.js文件，发现被eval加密了，不过可以从百度上随便找个在线网站解密源码。
-
-<img src="pictures/image-20200204200235250.png" alt="image-20200204200235250" style="zoom:50%;" />
-
-解密后的加密算法长这样的：
-
-<img src="pictures/image-20200204200455606.png" alt="image-20200204200455606" style="zoom:50%;" />
+> 我们返回页面，查看源代码，观察登录按钮的事件。
+>
+> <img src="pictures/image-20200204195212546.png" alt="image-20200204195212546" style="zoom:50%;" />
+>
+> 发现在登录时，账号和密码分别被叫encodeInp的函数加密，然后用"%%%"连接起来，和上面中加密的结果一致。
+>
+> 
+>
+> 观察网页源代码的头部文件，发现函数被放在了conwork.js中。
+>
+> <img src="pictures/image-20200204195729219.png" alt="image-20200204195729219" style="zoom:50%;" />
+>
+> 打开之前截取到的请求，找到conwork.js文件，发现被eval加密了，不过可以从百度上随便找个在线网站解密源码。
+>
+> <img src="pictures/image-20200204200235250.png" alt="image-20200204200235250" style="zoom:50%;" />
+>
+> 解密后的加密算法长这样的：
+>
+> <img src="pictures/image-20200204200455606.png" alt="image-20200204200455606" style="zoom:50%;" />
+>
+> 我们把它移植到Python中去，代码如下:
+>
+> ```python
+>  keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
+> 
+>     def _encodeInp(self, inputs):
+>         i = 0
+>         output = ""
+>         while True:
+>             chr2 = chr3 = 0
+>             chr1 = ord(inputs[i])
+>             i += 1
+>             flag2 = False
+>             if i < len(inputs):
+>                 chr2 = ord(inputs[i])
+>             else:
+>                 flag2 = True
+>             i += 1
+>             flag3 = False
+>             if i < len(inputs):
+>                 chr3 = ord(inputs[i])
+>             else:
+>                 flag3 = True
+>             i += 1
+>             enc1 = chr1 >> 2
+>             enc2 = ((chr1 & 3) << 4) | (chr2 >> 4)
+>             enc3 = ((chr2 & 15) << 2) | (chr3 >> 6)
+>             enc4 = chr3 & 63
+>             if flag2:
+>                 enc3 = enc4 = 64
+>             elif flag3:
+>                 enc4 = 64
+>             output = output + self.keyStr[enc1] + self.keyStr[enc2] \
+>                 + self.keyStr[enc3] + self.keyStr[enc4]
+>             if i >= len(inputs):
+>                 break
+>         return output
+> ```
 
 好了，到了这里我们先停一下，先用Python模拟一下自动登录，看看是否能登录成功
 
@@ -58,47 +101,14 @@ class Spider:
         'Referer': 'http://jwgln.zsc.edu.cn/jsxsd/'
     }
 
-    keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
-
-    def _encodeInp(self, inputs):
-        i = 0
-        output = ""
-        while True:
-            chr2 = chr3 = 0
-            chr1 = ord(inputs[i])
-            i += 1
-            flag2 = False
-            if i < len(inputs):
-                chr2 = ord(inputs[i])
-            else:
-                flag2 = True
-            i += 1
-            flag3 = False
-            if i < len(inputs):
-                chr3 = ord(inputs[i])
-            else:
-                flag3 = True
-            i += 1
-            enc1 = chr1 >> 2
-            enc2 = ((chr1 & 3) << 4) | (chr2 >> 4)
-            enc3 = ((chr2 & 15) << 2) | (chr3 >> 6)
-            enc4 = chr3 & 63
-            if flag2:
-                enc3 = enc4 = 64
-            elif flag3:
-                enc4 = 64
-            output = output + self.keyStr[enc1] + self.keyStr[enc2] \
-                + self.keyStr[enc3] + self.keyStr[enc4]
-            if i >= len(inputs):
-                break
-        return output
-
     post_data = {
 
     }
 
     def login(self, user_id, pass_wd):
-        encodes = self._encodeInp(user_id) + '%%%' + self._encodeInp(pass_wd)
+        encodes = str(base64.b64encode(bytes(user_id, 'utf-8')), 'utf-8') \
+                  + '%%%' \
+                  + str(base64.b64encode(bytes(pass_wd, 'utf-8')), 'utf-8')
         self.post_data['encoded'] = str(encodes)
         r_session = requests.session()
         r_session.post(self.login_url, headers=self.header, data=self.post_data)
@@ -139,6 +149,7 @@ kksj是查询的学期，kcxz是课程性质，kcmc是课程名称，xsfs是显�
 from bs4 import BeautifulSoup
 import requests
 import re
+import base64
 '''
     查询成绩小程序，下方填写账号密码即可一键查询
     使用前务必先安装好必要的python包
@@ -158,47 +169,14 @@ class Spider:
         'Referer': 'http://jwgln.zsc.edu.cn/jsxsd/'
     }
 
-    keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
-
-    def _encodeInp(self, inputs):
-        i = 0
-        output = ""
-        while True:
-            chr2 = chr3 = 0
-            chr1 = ord(inputs[i])
-            i += 1
-            flag2 = False
-            if i < len(inputs):
-                chr2 = ord(inputs[i])
-            else:
-                flag2 = True
-            i += 1
-            flag3 = False
-            if i < len(inputs):
-                chr3 = ord(inputs[i])
-            else:
-                flag3 = True
-            i += 1
-            enc1 = chr1 >> 2
-            enc2 = ((chr1 & 3) << 4) | (chr2 >> 4)
-            enc3 = ((chr2 & 15) << 2) | (chr3 >> 6)
-            enc4 = chr3 & 63
-            if flag2:
-                enc3 = enc4 = 64
-            elif flag3:
-                enc4 = 64
-            output = output + self.keyStr[enc1] + self.keyStr[enc2] \
-                + self.keyStr[enc3] + self.keyStr[enc4]
-            if i >= len(inputs):
-                break
-        return output
-
     post_data = {
 
     }
 
     def login(self, user_id, pass_wd):
-        encodes = self._encodeInp(user_id) + '%%%' + self._encodeInp(pass_wd)
+        encodes = str(base64.b64encode(bytes(user_id, 'utf-8')), 'utf-8') \
+                  + '%%%' \
+                  + str(base64.b64encode(bytes(pass_wd, 'utf-8')), 'utf-8')
         self.post_data['encoded'] = str(encodes)
         r_session = requests.session()
         r_session.post(self.login_url, headers=self.header, data=self.post_data)
@@ -250,13 +228,11 @@ def main():
         #print(page)
         return
     list = spider.parse_page(page)
-    # list 是成绩的列表。想要人性化显示，需自行遍历打印
     print(list)
-	
+
 
 if __name__ == '__main__':
     main()
-
 ```
 
 ---

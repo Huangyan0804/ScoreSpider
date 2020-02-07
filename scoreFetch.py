@@ -3,6 +3,7 @@
 from bs4 import BeautifulSoup
 import requests
 import re
+import base64
 '''
     查询成绩小程序，下方填写账号密码即可一键查询
     使用前务必先安装好必要的python包
@@ -22,47 +23,14 @@ class Spider:
         'Referer': 'http://jwgln.zsc.edu.cn/jsxsd/'
     }
 
-    keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
-
-    def _encodeInp(self, inputs):
-        i = 0
-        output = ""
-        while True:
-            chr2 = chr3 = 0
-            chr1 = ord(inputs[i])
-            i += 1
-            flag2 = False
-            if i < len(inputs):
-                chr2 = ord(inputs[i])
-            else:
-                flag2 = True
-            i += 1
-            flag3 = False
-            if i < len(inputs):
-                chr3 = ord(inputs[i])
-            else:
-                flag3 = True
-            i += 1
-            enc1 = chr1 >> 2
-            enc2 = ((chr1 & 3) << 4) | (chr2 >> 4)
-            enc3 = ((chr2 & 15) << 2) | (chr3 >> 6)
-            enc4 = chr3 & 63
-            if flag2:
-                enc3 = enc4 = 64
-            elif flag3:
-                enc4 = 64
-            output = output + self.keyStr[enc1] + self.keyStr[enc2] \
-                + self.keyStr[enc3] + self.keyStr[enc4]
-            if i >= len(inputs):
-                break
-        return output
-
     post_data = {
 
     }
 
     def login(self, user_id, pass_wd):
-        encodes = self._encodeInp(user_id) + '%%%' + self._encodeInp(pass_wd)
+        encodes = str(base64.b64encode(bytes(user_id, 'utf-8')), 'utf-8') \
+                  + '%%%' \
+                  + str(base64.b64encode(bytes(pass_wd, 'utf-8')), 'utf-8')
         self.post_data['encoded'] = str(encodes)
         r_session = requests.session()
         r_session.post(self.login_url, headers=self.header, data=self.post_data)
